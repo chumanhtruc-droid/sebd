@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Môi Trường Kiểm Thử Bài Thi - Test Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 30px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { color: #0284c7; margin-bottom: 8px; }
+        p.desc { color: #64748b; margin-bottom: 20px; }
+        .question {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .question-number {
+            font-weight: 700;
+            color: #0284c7;
+            margin-bottom: 6px;
+            display: inline-block;
+        }
+        .question-text {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .option {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .btn-add {
+            padding: 8px 14px;
+            background: #0284c7;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Trang Kiểm Thử Trắc Nghiệm (Test Quiz)</h1>
+    <p class="desc">Trang này được tải qua <strong>Local Proxy</strong> để kiểm tra tính năng <code>onBeforeResponse</code> và tự động tiêm script Index Extractor.</p>
+
+    <button class="btn-add" onclick="addDynamicQuestion()">➕ Thêm câu hỏi động (Test MutationObserver)</button>
+
+    <div id="quiz-list">
+        <!-- Câu 1 -->
+        <div class="question" data-index="1" data-question-id="Q_01">
+            <span class="question-number">Question 1</span>
+            <div class="question-text">Mục tiêu chính của Scrum Framework là gì?</div>
+            <div class="option">A. Tăng tính linh hoạt và tối ưu hóa giá trị sản phẩm chuyển giao</div>
+            <div class="option">B. Viết tài liệu dự án chi tiết trước khi bắt đầu</div>
+            <div class="option">C. Cố định toàn bộ phạm vi dự án từ đầu</div>
+            <div class="option">D. Thay thế hoàn toàn vai trò của lập trình viên</div>
+        </div>
+
+        <!-- Câu 2 -->
+        <div class="question" data-index="2" data-question-id="Q_02">
+            <span class="question-number">Question 2</span>
+            <div class="question-text">Một Sprint trong Scrum thường kéo dài tối đa bao lâu?</div>
+            <div class="option">A. 1 tháng (4 tuần)</div>
+            <div class="option">B. 6 tháng</div>
+            <div class="option">C. 1 năm</div>
+            <div class="option">D. Không giới hạn thời gian</div>
+        </div>
+
+        <!-- Câu 3 -->
+        <div class="question" data-index="3" data-question-id="Q_03">
+            <span class="question-number">Câu 3</span>
+            <div class="question-text">Ai là người chịu trách nhiệm quản lý Product Backlog?</div>
+            <div class="option">A. Product Owner (PO)</div>
+            <div class="option">B. Scrum Master (SM)</div>
+            <div class="option">C. Developers</div>
+            <div class="option">D. Ban giám đốc</div>
+        </div>
+    </div>
+
+    <script>
+        let counter = 4;
+        function addDynamicQuestion() {
+            const list = document.getElementById('quiz-list');
+            const q = document.createElement('div');
+            q.className = 'question';
+            q.setAttribute('data-index', counter);
+            q.setAttribute('data-question-id', 'Q_DYN_' + counter);
+            q.innerHTML = `
+                <span class="question-number">Câu ${counter}</span>
+                <div class="question-text">Câu hỏi động số ${counter}: Thời gian của Daily Scrum tối đa là bao lâu?</div>
+                <div class="option">A. 15 phút</div>
+                <div class="option">B. 30 phút</div>
+                <div class="option">C. 60 phút</div>
+            `;
+            list.appendChild(q);
+            counter++;
+        }
+    </script>
+</body>
+</html>

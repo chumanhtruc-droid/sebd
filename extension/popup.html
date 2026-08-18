@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            width: 320px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 16px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #334155;
+        }
+        .logo-icon {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .title { font-weight: 700; font-size: 14px; color: #60a5fa; }
+        .box {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            display: block;
+            text-transform: uppercase;
+        }
+        input {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            outline: none;
+            margin-bottom: 8px;
+        }
+        input:focus { border-color: #3b82f6; }
+        button {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .btn-primary { background: #3b82f6; color: white; margin-bottom: 8px; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-auto { background: #8b5cf6; color: white; }
+        .btn-auto:hover { background: #7c3aed; }
+        .btn-link {
+            background: transparent;
+            color: #38bdf8;
+            border: 1px solid #334155;
+            margin-top: 6px;
+        }
+        .btn-link:hover { background: #1e293b; }
+        .status {
+            font-size: 11.5px;
+            color: #94a3b8;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .status strong { color: #f8fafc; }
+        .dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; display: inline-block; margin-right: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-icon">⚡</div>
+        <div class="title">Auto Quiz Extractor</div>
+    </div>
+
+    <!-- Tự động mở web & cào -->
+    <div class="box">
+        <label class="label">1. Tự động mở Web & Cào dữ liệu:</label>
+        <input type="text" id="target-url" placeholder="https://example.com/quiz..." />
+        <button class="btn-auto" id="btn-open-and-scrape">🚀 Mở Web & Bóc Tách Tự Động</button>
+    </div>
+
+    <!-- Bóc tab hiện tại -->
+    <div class="box">
+        <label class="label">2. Đang ở trang bài thi:</label>
+        <button class="btn-primary" id="btn-scrape-active">🔍 Bóc Tách Tab Hiện Tại & Gửi</button>
+        <button class="btn-link" id="btn-open-dashboard">📊 Mở Web Dashboard</button>
+    </div>
+
+    <div class="status">
+        <span><span class="dot"></span> Server: <strong>http://localhost:3000</strong></span>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

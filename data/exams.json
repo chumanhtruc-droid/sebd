@@ -1,0 +1,22 @@
+[
+  {
+    "id": "exam_1787069765899_ofkc6",
+    "title": "Bài Test Aglie",
+    "sourceUrl": "https://test.local",
+    "timestamp": "2026-08-18T16:16:05.899Z",
+    "createdAt": "2026-08-18T16:16:05.899Z",
+    "totalQuestions": 1,
+    "questions": [
+      {
+        "index": 1,
+        "questionId": "Q1",
+        "question": "Scrum là gì?",
+        "options": [
+          "A. Framework",
+          "B. Ngôn ngữ"
+        ],
+        "indexSource": "data-index"
+      }
+    ]
+  }
+]

@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Dashboard - Question Receiver Server</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #0b1120;
+            --bg-sidebar: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #26354a;
+            --border-color: #334155;
+            --border-highlight: #475569;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --primary-light: #60a5fa;
+            --accent: #10b981;
+            --accent-light: #34d399;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 340px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 16px;
+            color: var(--primary-light);
+            letter-spacing: -0.3px;
+        }
+
+        .logo-icon {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+        }
+
+        .refresh-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .refresh-btn:hover {
+            color: var(--text-main);
+            border-color: var(--primary);
+        }
+
+        .sidebar-meta {
+            padding: 12px 20px;
+            background: rgba(30, 41, 59, 0.4);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 11.5px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            margin-right: 4px;
+        }
+
+        .exam-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .exam-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .exam-item:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-highlight);
+            transform: translateY(-1px);
+        }
+
+        .exam-item.active {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+
+        .exam-item-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+
+        .exam-item-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: var(--text-muted);
+        }
+
+        .badge-count {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-light);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 11px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .sidebar-footer {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11.5px;
+            color: var(--text-dim);
+        }
+
+        .btn-clear-all {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .btn-clear-all:hover { text-decoration: underline; }
+
+        /* MAIN CONTENT VIEW */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-main);
+            overflow: hidden;
+        }
+
+        .top-navbar {
+            padding: 16px 28px;
+            background: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .active-exam-info h2 {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.3px;
+            margin-bottom: 4px;
+        }
+
+        .active-exam-info .sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .active-exam-info .sub a {
+            color: var(--primary-light);
+            text-decoration: none;
+        }
+
+        .active-exam-info .sub a:hover { text-decoration: underline; }
+
+        .action-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-main);
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-highlight);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        .btn-danger {
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--danger);
+        }
+
+        /* SEARCH & FILTER BAR */
+        .filter-bar {
+            padding: 12px 28px;
+            background: rgba(15, 23, 42, 0.6);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .search-input-box {
+            position: relative;
+            flex: 1;
+            max-width: 450px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 14px 8px 36px;
+            color: var(--text-main);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        .filter-stats {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* QUESTIONS CONTAINER */
+        .questions-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .question-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px 20px;
+            transition: all 0.2s;
+        }
+
+        .question-card:hover {
+            border-color: var(--border-highlight);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+
+        .q-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .q-index-tag {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--primary-light);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .q-meta-source {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .q-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+            line-height: 1.55;
+            margin-bottom: 14px;
+            white-space: pre-wrap;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-item {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13.5px;
+            color: #cbd5e1;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.45;
+        }
+
+        .option-item:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: var(--border-highlight);
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: var(--primary-light);
+            margin-bottom: 16px;
+        }
+
+        .empty-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .empty-desc {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            max-width: 440px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .code-box {
+            background: #020617;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 18px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-light);
+            max-width: 500px;
+            text-align: left;
+            overflow-x: auto;
+        }
+
+        /* TOAST NOTIFICATION */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: #f8fafc;
+            border: 1px solid var(--primary);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 9999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">⚡</div>
+                <span>QUIZ RECEIVER</span>
+            </div>
+            <button class="refresh-btn" id="btn-refresh" title="Làm mới danh sách">
+                <span>🔄</span> Tải lại
+            </button>
+        </div>
+
+        <div class="sidebar-meta">
+            <span><span class="live-dot"></span> Server: <strong>Online</strong></span>
+            <span id="stat-total-exams">0 đề thi</span>
+        </div>
+
+        <div class="exam-list" id="exam-list">
+            <!-- Danh sách các bài thi sẽ render ở đây -->
+        </div>
+
+        <div class="sidebar-footer">
+            <span>Endpoint: <code>/api/save</code></span>
+            <button class="btn-clear-all" id="btn-clear-all">Xóa tất cả</button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <!-- TOP NAV -->
+        <header class="top-navbar">
+            <div class="active-exam-info">
+                <h2 id="active-title">Chọn một đề thi từ danh sách</h2>
+                <div class="sub" id="active-meta">
+                    <span>Thời gian: --</span>
+                    <span>Nguồn: --</span>
+                </div>
+            </div>
+            <div class="action-toolbar" id="toolbar" style="display: none;">
+                <button class="btn btn-primary" id="btn-copy-json">📋 Copy JSON</button>
+                <button class="btn" id="btn-download-json">💾 Download JSON</button>
+                <button class="btn" id="btn-export-txt">📄 Xuất File TXT</button>
+                <button class="btn btn-danger" id="btn-delete-exam" title="Xóa đề này">🗑️ Xóa</button>
+            </div>
+        </header>
+
+        <!-- FILTER & SEARCH -->
+        <div class="filter-bar" id="filter-bar" style="display: none;">
+            <div class="search-input-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="search-input" placeholder="Tìm kiếm câu hỏi, đáp án, số thứ tự..." />
+            </div>
+            <div class="filter-stats" id="filter-stats">
+                Hiển thị: 0 câu hỏi
+            </div>
+        </div>
+
+        <!-- QUESTIONS LIST -->
+        <div class="questions-scroll-area" id="questions-container">
+            <!-- Empty state ban đầu -->
+            <div class="empty-state">
+                <div class="empty-icon">📥</div>
+                <h3 class="empty-title">Chưa có dữ liệu bài thi nào</h3>
+                <p class="empty-desc">
+                    Mở trang web trắc nghiệm trong trình duyệt Chrome, mở DevTools Console và chạy script <code>index_extractor.js</code> để tự động bóc và gửi câu hỏi về đây.
+                </p>
+                <div class="code-box">
+                    POST http://localhost:3000/api/save
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- TOAST ALERT -->
+    <div class="toast" id="toast">
+        <span id="toast-icon">✅</span>
+        <span id="toast-msg">Thông báo</span>
+    </div>
+
+    <script>
+        let currentExams = [];
+        let selectedExam = null;
+        let lastExamCount = 0;
+
+        // Khởi tạo
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchExams();
+            // Polling tự động kiểm tra đề mới mỗi 3 giây
+            setInterval(fetchExams, 3000);
+            bindEvents();
+        });
+
+        function showToast(msg, icon = '✅') {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            document.getElementById('toast-icon').textContent = icon;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        async function fetchExams() {
+            try {
+                const res = await fetch('/api/exams');
+                const exams = await res.json();
+
+                // Nếu có bài thi mới gửi về
+                if (exams.length > lastExamCount && lastExamCount !== 0) {
+                    showToast(`Đã nhận thêm đề thi mới: "${exams[0].title}"`, '🎉');
+                }
+                lastExamCount = exams.length;
+                currentExams = exams;
+
+                renderSidebar();
+
+                // Nếu chưa chọn bài nào và danh sách có dữ liệu, chọn bài đầu tiên
+                if (!selectedExam && exams.length > 0) {
+                    selectExam(exams[0].id);
+                }
+            } catch (err) {
+                console.error('Lỗi khi tải danh sách đề:', err);
+            }
+        }
+
+        function renderSidebar() {
+            const listEl = document.getElementById('exam-list');
+            document.getElementById('stat-total-exams').textContent = `${currentExams.length} đề thi`;
+
+            if (currentExams.length === 0) {
+                listEl.innerHTML = `
+                    <div style="text-align:center; padding:30px 10px; color:var(--text-dim); font-size:13px;">
+                        Đang chờ dữ liệu gửi đến...
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = currentExams.map(exam => {
+                const isActive = selectedExam && selectedExam.id === exam.id ? 'active' : '';
+                const timeStr = new Date(exam.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                return `
+                    <div class="exam-item ${isActive}" onclick="selectExam('${exam.id}')">
+                        <div class="exam-item-title">${escapeHTML(exam.title)}</div>
+                        <div class="exam-item-meta">
+                            <span>🕒 ${timeStr}</span>
+                            <span class="badge-count">${exam.totalQuestions} câu</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function selectExam(examId) {
+            try {
+                const res = await fetch(`/api/exams/${examId}`);
+                if (!res.ok) return;
+                selectedExam = await res.json();
+
+                renderSidebar();
+                renderMainView();
+            } catch (err) {
+                console.error('Lỗi tải chi tiết bài thi:', err);
+            }
+        }
+
+        function renderMainView() {
+            if (!selectedExam) return;
+
+            document.getElementById('toolbar').style.display = 'flex';
+            document.getElementById('filter-bar').style.display = 'flex';
+
+            document.getElementById('active-title').textContent = selectedExam.title;
+            const timeFormatted = new Date(selectedExam.createdAt).toLocaleString();
+            document.getElementById('active-meta').innerHTML = `
+                <span>🕒 Nhận lúc: <strong>${timeFormatted}</strong></span>
+                <span>🌐 Nguồn: <a href="${selectedExam.sourceUrl}" target="_blank">${escapeHTML(selectedExam.sourceUrl)}</a></span>
+            `;
+
+            renderQuestionsList();
+        }
+
+        function renderQuestionsList() {
+            if (!selectedExam || !selectedExam.questions) return;
+
+            const query = document.getElementById('search-input').value.trim().toLowerCase();
+            const container = document.getElementById('questions-container');
+
+            const filtered = selectedExam.questions.filter(q => {
+                if (!query) return true;
+                const matchQ = (q.question || '').toLowerCase().includes(query);
+                const matchIdx = String(q.index).toLowerCase().includes(query);
+                const matchOpts = (q.options || []).some(opt => opt.toLowerCase().includes(query));
+                return matchQ || matchIdx || matchOpts;
+            });
+
+            document.getElementById('filter-stats').textContent = `Hiển thị: ${filtered.length} / ${selectedExam.questions.length} câu hỏi`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:60px 20px; color:var(--text-dim);">
+                        Không tìm thấy câu hỏi nào khớp với từ khóa "<strong>${escapeHTML(query)}</strong>"
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(q => {
+                const optionsHTML = (q.options && q.options.length > 0)
+                    ? `<div class="options-grid">
+                        ${q.options.map(opt => `<div class="option-item">${escapeHTML(opt)}</div>`).join('')}
+                       </div>`
+                    : '';
+
+                return `
+                    <div class="question-card">
+                        <div class="q-card-header">
+                            <div class="q-index-tag">
+                                <span>#${q.index}</span>
+                                <span style="font-size:10px; opacity:0.75;">(ID: ${escapeHTML(q.questionId || 'N/A')})</span>
+                            </div>
+                            <div class="q-meta-source">Nguồn: ${q.indexSource || 'auto'}</div>
+                        </div>
+                        <div class="q-title">${escapeHTML(q.question)}</div>
+                        ${optionsHTML}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function bindEvents() {
+            document.getElementById('btn-refresh').addEventListener('click', () => {
+                fetchExams();
+                showToast('Đã làm mới dữ liệu!');
+            });
+
+            document.getElementById('search-input').addEventListener('input', () => {
+                renderQuestionsList();
+            });
+
+            document.getElementById('btn-copy-json').addEventListener('click', () => {
+                if (!selectedExam) return;
+                navigator.clipboard.writeText(JSON.stringify(selectedExam.questions, null, 2)).then(() => {
+                    showToast('Đã copy toàn bộ JSON câu hỏi!');
+                });
+            });
+
+            document.getElementById('btn-download-json').addEventListener('click', () => {
+                if (!selectedExam) return;
+                const blob = new Blob([JSON.stringify(selectedExam, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `${selectedExam.title.replace(/[^a-z0-9]/gi, '_')}.json`;
+                a.click();
+                showToast('Đã tải xuống file JSON!');
+            });
+
+            document.getElementById('btn-export-txt').addEventListener('click', () => {
+                if (!selectedExam) return;
+                let txt = `===================================================\n`;
+                txt += `ĐỀ THI: ${selectedExam.title}\n`;
+                txt += `NGUỒN: ${selectedExam.sourceUrl}\n`;
+                txt += `TỔNG SỐ CÂU: ${selectedExam.totalQuestions}\n`;
+                txt += `===================================================\n\n`;
+
+                selectedExam.questions.forEach(q => {
+                    txt += `Câu ${q.index}: ${q.question}\n`;
+                    if (q.options && q.options.length > 0) {
+                        q.options.forEach(opt => {
+                            txt += `   ${opt}\n`;
+                        });
+                    }
+                    txt += `\n---------------------------------------------------\n\n`;
+                });
+
+                const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `${selectedExam.title.replace(/[^a-z0-9]/gi, '_')}.txt`;
+                a.click();
+                showToast('Đã xuất file TXT thành công!');
+            });
+
+            document.getElementById('btn-delete-exam').addEventListener('click', async () => {
+                if (!selectedExam) return;
+                if (!confirm(`Bạn có chắc chắn muốn xóa bài thi "${selectedExam.title}"?`)) return;
+
+                const res = await fetch(`/api/exams/${selectedExam.id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast('Đã xóa bài thi!');
+                    selectedExam = null;
+                    fetchExams();
+                    document.getElementById('toolbar').style.display = 'none';
+                    document.getElementById('filter-bar').style.display = 'none';
+                    document.getElementById('questions-container').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">🗑️</div>
+                            <h3 class="empty-title">Bài thi đã được xóa</h3>
+                        </div>
+                    `;
+                }
+            });
+
+            document.getElementById('btn-clear-all').addEventListener('click', async () => {
+                if (!confirm('Bạn có chắc muốn xóa TẤT CẢ các bài thi đã lưu?')) return;
+                const res = await fetch('/api/exams', { method: 'DELETE' });
+                if (res.ok) {
+                    showToast('Đã xóa toàn bộ dữ liệu!');
+                    selectedExam = null;
+                    fetchExams();
+                    location.reload();
+                }
+            });
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiểm Thử - Question Debugger Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 30px 20px;
+            max-width: 850px;
+            margin: 0 auto;
+        }
+        h1 { color: #0284c7; margin-bottom: 6px; }
+        p.desc { color: #64748b; margin-bottom: 20px; font-size: 14px; }
+        .control-bar {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-action {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            background: #0284c7;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .btn-action.sec { background: #475569; }
+        .question-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .q-badge {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            font-weight: 700;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .q-text { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+        .opt-item {
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 13.5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Môi Trường Kiểm Thử Question Debugger</h1>
+    <p class="desc">Trang này mô phỏng cả 3 luồng: Dữ liệu trên <strong>DOM</strong>, biến trong <strong>JavaScript Runtime</strong>, và dữ liệu từ <strong>API Fetch/Network</strong>.</p>
+
+    <div class="control-bar">
+        <button class="btn-action" onclick="simulateAPIFetch()">📡 Giả lập API Fetch câu hỏi mới</button>
+        <button class="btn-action sec" onclick="addDynamicDOM()">➕ Thêm câu hỏi vào DOM (Test MutationObserver)</button>
+    </div>
+
+    <!-- KHU VỰC CÂU HỎI TRÊN DOM -->
+    <div id="quiz-wrapper">
+        <div class="question-card" data-index="1" data-question-id="Q_SCRUM_01">
+            <span class="q-badge">Question 1</span>
+            <div class="q-text">Mô hình Scrum gồm những vai trò chính nào?</div>
+            <div class="opt-item">A. Product Owner, Scrum Master, Developers</div>
+            <div class="opt-item">B. Project Manager, Tech Lead, Tester</div>
+            <div class="opt-item">C. Business Analyst, QA, UI Designer</div>
+        </div>
+
+        <div class="question-card" data-index="2" data-question-id="Q_SCRUM_02">
+            <span class="q-badge">Question 2</span>
+            <div class="q-text">Sprint Planning thường kéo dài tối đa bao lâu cho Sprint 1 tháng?</div>
+            <div class="opt-item">A. 4 giờ</div>
+            <div class="opt-item">B. 8 giờ</div>
+            <div class="opt-item">C. 2 giờ</div>
+        </div>
+
+        <!-- Trùng lặp (Duplicate) để test tính năng đếm duplicate -->
+        <div class="question-card" data-index="3" data-question-id="Q_SCRUM_DUP">
+            <span class="q-badge">Question 3</span>
+            <div class="q-text">Mô hình Scrum gồm những vai trò chính nào?</div>
+            <div class="opt-item">A. Duplicate option A</div>
+            <div class="opt-item">B. Duplicate option B</div>
+        </div>
+    </div>
+
+    <!-- GIẢ LẬP DỮ LIỆU TRONG JAVASCRIPT RUNTIME -->
+    <script>
+        // Dữ liệu tồn tại trong bộ nhớ JS của website
+        window.appExamState = {
+            examTitle: "Bài thi thử Agile/Scrum",
+            questions: [
+                {
+                    index: 10,
+                    questionId: "JS_STATE_10",
+                    question: "Product Backlog là trách nhiệm quản lý của ai?",
+                    options: ["Product Owner", "Scrum Master", "Development Team"]
+                },
+                {
+                    index: 11,
+                    questionId: "JS_STATE_11",
+                    question: "Definition of Done (DoD) do ai tạo ra?",
+                    options: ["Scrum Team hoặc Tổ chức", "Chỉ Product Owner", "Khách hàng"]
+                }
+            ]
+        };
+
+        function simulateAPIFetch() {
+            // Giả lập một network request trả về JSON
+            fetch('https://jsonplaceholder.typicode.com/todos/1', { method: 'GET' })
+                .then(() => {
+                    console.log("[TEST] API response simulated for debugger.");
+                });
+        }
+
+        let dynIdx = 4;
+        function addDynamicDOM() {
+            const wrapper = document.getElementById('quiz-wrapper');
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.setAttribute('data-index', dynIdx);
+            card.setAttribute('data-question-id', `Q_DYN_${dynIdx}`);
+            card.innerHTML = `
+                <span class="q-badge">Question ${dynIdx}</span>
+                <div class="q-text">Mục tiêu của Daily Scrum là gì (Câu động số ${dynIdx})?</div>
+                <div class="opt-item">A. Đồng bộ hóa tiến độ hàng ngày</div>
+                <div class="opt-item">B. Báo cáo giờ làm việc</div>
+            `;
+            wrapper.appendChild(card);
+            dynIdx++;
+        }
+    </script>
+
+    <!-- Nạp trực tiếp tool Debugger vào trang -->
+    <script src="./question_debugger.js"></script>
+</body>
+</html>

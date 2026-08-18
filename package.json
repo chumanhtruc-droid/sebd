@@ -1,0 +1,12 @@
+{
+  "name": "question-receiver-server",
+  "version": "1.0.0",
+  "description": "Server nhận và quản lý dữ liệu câu hỏi từ Index Extractor",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["quiz", "extractor", "debugger"],
+  "author": "Antigravity",
+  "license": "MIT"
+}

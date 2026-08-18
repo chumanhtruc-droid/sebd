@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Auto Quiz Extractor & Sender",
+  "version": "1.0.0",
+  "description": "Tự động phát hiện, bóc tách câu hỏi từ trang web bài thi và gửi về Server quản lý.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Quiz Extractor"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

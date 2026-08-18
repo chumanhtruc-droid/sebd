@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INDEX EXTRACTOR - Proxy & Extraction Control Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #0b0f19;
+            --bg-panel: #111827;
+            --bg-card: #1f2937;
+            --border: #374151;
+            --text: #f9fafb;
+            --text-muted: #9ca3af;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --accent: #38bdf8;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-body);
+            color: var(--text);
+            padding: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        .status-badge.on {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+        .info-row strong { color: var(--text); font-family: var(--font-mono); }
+
+        .stats-grid {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 14px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-label { font-size: 11px; color: var(--text-muted); }
+        .stat-val { font-size: 16px; font-weight: 700; font-family: var(--font-mono); color: var(--text); }
+        .stat-val.highlight { color: var(--success); }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s;
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn:hover { background: #374151; }
+        .btn-start { background: var(--success); color: white; border: none; }
+        .btn-start:hover { background: #059669; }
+        .btn-stop { background: var(--danger); color: white; border: none; }
+        .btn-stop:hover { background: #dc2626; }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        .btn-primary:hover { background: var(--primary-hover); }
+
+        .btn-row { display: flex; gap: 8px; }
+        .btn-row .btn { flex: 1; }
+
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 18px 0 14px 0;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .log-terminal {
+            background: #030712;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #38bdf8;
+            height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .log-entry { line-height: 1.4; color: #94a3b8; }
+        .log-entry.injected { color: #4ade80; font-weight: 600; }
+
+        /* RIGHT PANE: DATA PREVIEW */
+        .right-pane {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .questions-container {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            flex: 1;
+            max-height: 580px;
+            overflow-y: auto;
+        }
+
+        .q-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .q-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 6px;
+            color: var(--text-muted);
+        }
+        .q-badge {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+        }
+        .q-text { font-size: 13.5px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+        .opt-list { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #cbd5e1; }
+        .opt-item { background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- LEFT CONTROL PANEL -->
+        <div class="panel">
+            <div class="title">
+                <span>INDEX EXTRACTOR</span>
+                <span class="status-badge" id="proxy-status">Proxy: OFF</span>
+            </div>
+
+            <div class="info-row">
+                <span>Proxy Port:</span>
+                <strong id="proxy-port">8080</strong>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">Requests:</span>
+                    <span class="stat-val" id="stat-requests">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">HTML Responses:</span>
+                    <span class="stat-val" id="stat-html">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Injected:</span>
+                    <span class="stat-val highlight" id="stat-injected">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Skipped:</span>
+                    <span class="stat-val" id="stat-skipped">0</span>
+                </div>
+            </div>
+
+            <div class="info-row" style="background:var(--bg-card); padding:8px 12px; border-radius:6px; border:1px solid var(--border);">
+                <span>Total Questions Extracted:</span>
+                <strong style="color:var(--success); font-size:16px;" id="stat-questions">0</strong>
+            </div>
+
+            <div class="btn-group">
+                <div class="btn-row">
+                    <button class="btn btn-start" id="btn-start-proxy">▶ START PROXY</button>
+                    <button class="btn btn-stop" id="btn-stop-proxy">⏹ STOP PROXY</button>
+                </div>
+                <button class="btn btn-primary" id="btn-scan-dom">🔍 SCAN DOM (ACTIVE TAB)</button>
+                <div class="btn-row">
+                    <button class="btn" id="btn-copy-json">📋 COPY JSON</button>
+                    <button class="btn" id="btn-copy-index">🔢 COPY INDEX</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="section-title">REQUEST LOG</div>
+            <div class="log-terminal" id="log-terminal">
+                <div class="log-entry">Waiting for traffic through Proxy...</div>
+            </div>
+        </div>
+
+        <!-- RIGHT DATA PREVIEW -->
+        <div class="right-pane">
+            <div class="questions-container" id="questions-container">
+                <div style="text-align:center; padding:50px 20px; color:var(--text-muted);">
+                    <div style="font-size:32px; margin-bottom:10px;">📥</div>
+                    <strong>Chưa có câu hỏi nào được bóc tách</strong>
+                    <p style="font-size:12px; margin-top:6px; color:#64748b;">
+                        Hãy truy cập trang web test qua Proxy (<code>127.0.0.1:8080</code>). Mã bóc tách sẽ tự động được inject vào HTML.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let latestQuestions = [];
+
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/proxy/stats');
+                const data = await res.json();
+
+                // Cập nhật trạng thái
+                const badge = document.getElementById('proxy-status');
+                badge.textContent = `Proxy: ${data.isRunning ? 'ON' : 'OFF'}`;
+                badge.className = `status-badge ${data.isRunning ? 'on' : ''}`;
+
+                document.getElementById('proxy-port').textContent = data.port;
+                document.getElementById('stat-requests').textContent = data.stats.requests;
+                document.getElementById('stat-html').textContent = data.stats.htmlResponses;
+                document.getElementById('stat-injected').textContent = data.stats.injected;
+                document.getElementById('stat-skipped').textContent = data.stats.skipped;
+                document.getElementById('stat-questions').textContent = data.stats.questionsFound;
+
+                // Cập nhật log
+                const logTerm = document.getElementById('log-terminal');
+                if (data.logs && data.logs.length > 0) {
+                    logTerm.innerHTML = data.logs.map(log => {
+                        const isInjected = log.includes('injected') || log.includes('Saved');
+                        return `<div class="log-entry ${isInjected ? 'injected' : ''}">${escapeHTML(log)}</div>`;
+                    }).join('');
+                }
+            } catch (e) {}
+        }
+
+        async function fetchQuestions() {
+            try {
+                const res = await fetch('/api/exams');
+                const exams = await res.json();
+                if (exams.length > 0 && exams[0].questions) {
+                    latestQuestions = exams[0].questions;
+                    renderQuestions(latestQuestions);
+                }
+            } catch (e) {}
+        }
+
+        function renderQuestions(items) {
+            const container = document.getElementById('questions-container');
+            if (!items || items.length === 0) return;
+
+            container.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom:12px; font-size:13px; font-weight:700; color:#38bdf8;">
+                    <span>DANH SÁCH CÂU HỎI BÓC TÁCH ĐƯỢC (${items.length} câu)</span>
+                </div>
+            ` + items.map(q => `
+                <div class="q-card">
+                    <div class="q-header">
+                        <span class="q-badge">#Index: ${q.index}</span>
+                        <span>ID: ${escapeHTML(q.questionId || 'N/A')} | Nguồn: ${q.indexSource || 'auto'}</span>
+                    </div>
+                    <div class="q-text">${escapeHTML(q.question)}</div>
+                    ${q.options ? `<div class="opt-list">${q.options.map(o => `<div class="opt-item">${escapeHTML(o)}</div>`).join('')}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function escapeHTML(s) {
+            if (!s) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        document.getElementById('btn-start-proxy').addEventListener('click', async () => {
+            await fetch('/api/proxy/start', { method: 'POST' });
+            fetchStats();
+        });
+
+        document.getElementById('btn-stop-proxy').addEventListener('click', async () => {
+            await fetch('/api/proxy/stop', { method: 'POST' });
+            fetchStats();
+        });
+
+        document.getElementById('btn-copy-json').addEventListener('click', () => {
+            if (latestQuestions.length === 0) {
+                alert('Chưa có câu hỏi nào để copy!');
+                return;
+            }
+            navigator.clipboard.writeText(JSON.stringify(latestQuestions, null, 2));
+            alert(`Đã copy ${latestQuestions.length} câu hỏi vào clipboard!`);
+        });
+
+        document.getElementById('btn-copy-index').addEventListener('click', () => {
+            if (latestQuestions.length === 0) {
+                alert('Chưa có câu hỏi nào để copy index!');
+                return;
+            }
+            const indexes = latestQuestions.map(q => q.index).join('\n');
+            navigator.clipboard.writeText(indexes);
+            alert(`Đã copy danh sách index vào clipboard!`);
+        });
+
+        document.getElementById('btn-scan-dom').addEventListener('click', () => {
+            alert('Nếu bạn đang mở trang web đã qua Proxy, script đã tự động inject và hiển thị HUD góc phải của trang đó!');
+        });
+
+        // Polling cập nhật mỗi 1.5 giây
+        setInterval(() => {
+            fetchStats();
+            fetchQuestions();
+        }, 1500);
+
+        fetchStats();
+        fetchQuestions();
+    </script>
+</body>
+</html>
