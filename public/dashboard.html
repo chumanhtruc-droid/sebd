@@ -338,8 +338,12 @@
 
             el.innerHTML = exams.map(item => {
                 const isAct = selected && selected.id === item.id ? 'active' : '';
-                const title = item.metadata?.pageTitle || 'Đề thi trích xuất';
-                const time = new Date(item.receivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const title = item.metadata?.pageTitle || item.title || 'Đề thi trích xuất';
+                const dateVal = item.receivedAt || item.createdAt || item.timestamp || (item.metadata && item.metadata.timestamp);
+                const parsedDate = dateVal ? new Date(dateVal) : new Date();
+                const isValidDate = !isNaN(parsedDate.getTime());
+                const time = isValidDate ? parsedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
                 return `
                     <div class="exam-item ${isAct}" onclick="selectExam('${item.id}')">
                         <div class="exam-item-title">${escapeHTML(title)}</div>
@@ -360,7 +364,11 @@
             document.getElementById('toolbar').style.display = 'flex';
             document.getElementById('filter-row').style.display = 'flex';
             document.getElementById('disp-title').textContent = selected.metadata?.pageTitle || 'Đề thi';
-            document.getElementById('disp-meta').textContent = `Nhận lúc: ${new Date(selected.receivedAt).toLocaleString()} | Nguồn: ${selected.metadata?.sourceUrl || 'N/A'}`;
+            const dateVal = selected.receivedAt || selected.createdAt || selected.timestamp || (selected.metadata && selected.metadata.timestamp);
+            const parsedDate = dateVal ? new Date(dateVal) : new Date();
+            const dateFormatted = !isNaN(parsedDate.getTime()) ? parsedDate.toLocaleString() : new Date().toLocaleString();
+
+            document.getElementById('disp-meta').textContent = `Nhận lúc: ${dateFormatted} | Nguồn: ${selected.metadata?.sourceUrl || selected.sourceUrl || 'N/A'}`;
 
             renderQuestions();
         }
