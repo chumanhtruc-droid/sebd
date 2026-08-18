@@ -1,262 +1,194 @@
 /**
  * ==============================================================================
- * INDEX EXTRACTOR - FULL AUTO SCAN & TRANSMITTER (TỰ ĐỘNG 100%)
+ * UNIVERSAL INDEX EXTRACTOR (CLASS-AGNOSTIC & 100% AUTOMATED)
  * ==============================================================================
- * Khi inject vào trang:
- * 1. Tự động quét toàn bộ DOM ngay lập tức.
- * 2. Tự động bóc Index, Câu hỏi, Đáp án.
- * 3. Tự động gửi thẳng về Web Dashboard http://localhost:3000 mà không cần bấm gì.
- * 4. Tự động theo dõi DOM (MutationObserver) nếu trang tải thêm câu hỏi bằng AJAX.
+ * Tự động phân tích MỌI cấu trúc HTML dựa trên cấu trúc tự nhiên của câu hỏi:
+ * - Tầng 1: Tự động nhóm các Radio / Checkbox inputs
+ * - Tầng 2: Tự động phát hiện ký hiệu lựa chọn (A., B., C., D. / 1., 2., 3.)
+ * - Tầng 3: Tự động phát hiện tiền tố số thứ tự (Câu 1, Question 1, Bài 1)
+ * - Tự động khử duplicate, sắp xếp và gửi thẳng về Dashboard http://localhost:3000
  * ==============================================================================
  */
 
 (function () {
     'use strict';
 
-    if (window.__AUTO_INDEX_EXTRACTOR_RUNNING__) {
-        console.log('[AUTO EXTRACTOR] Tool đã được kích hoạt trên trang này.');
-        if (window.IndexExtractor && window.IndexExtractor.scanAndSend) {
-            window.IndexExtractor.scanAndSend();
-        }
-        return;
-    }
-    window.__AUTO_INDEX_EXTRACTOR_RUNNING__ = true;
+    if (window.__UNIVERSAL_INDEX_EXTRACTOR_LOADED__) return;
+    window.__UNIVERSAL_INDEX_EXTRACTOR_LOADED__ = true;
 
-    /* ==========================================================================
-       1. CẤU HÌNH TỰ ĐỘNG
-       ========================================================================== */
-    const CONFIG = {
-        DEBUG: true,
-        SERVER_URL: 'http://localhost:3000/api/save',
-        
-        // TỰ ĐỘNG GỬI 100% NGAY KHI VÀO TRANG
-        AUTO_SCAN_ON_LOAD: true,
-        AUTO_SEND_TO_SERVER: true,
-        AUTO_WATCH_DOM_CHANGES: true, // Tự động quét lại nếu web load thêm câu hỏi qua AJAX
+    console.log('%c[UNIVERSAL EXTRACTOR] ⚡ Lõi bóc tách tự động đa tầng đang hoạt động...', 'background:#2563eb;color:#fff;padding:3px 8px;border-radius:4px;font-weight:bold;');
 
-        questionSelectors: [
-            '.question',
-            '.question-item',
-            '.question-container',
-            '.question-card',
-            '.quiz-question',
-            '.exam-question',
-            '.test-question',
-            '.que', // Moodle/LMS
-            '.q-item',
-            '[data-question]',
-            '[data-question-id]',
-            '[data-index]',
-            '[class*="question"]',
-            '[id*="question"]'
-        ],
+    const SAVE_ENDPOINT = 'http://localhost:3000/api/save';
 
-        optionSelectors: [
-            '.option',
-            '.option-item',
-            '.answer',
-            '.answer-item',
-            '.choice',
-            '.choice-item',
-            '.quiz-answer',
-            '.form-check',
-            '[data-option]',
-            '[class*="option"]',
-            '[class*="answer"]',
-            '[class*="choice"]'
-        ],
-
-        noiseSelectors: [
-            'button',
-            'script',
-            'style',
-            'svg',
-            'noscript',
-            '.btn',
-            '.actions',
-            '.tooltip',
-            '.badge',
-            '[aria-hidden="true"]',
-            'input[type="radio"]',
-            'input[type="checkbox"]'
-        ],
-
-        indexElementSelectors: [
-            '.question-number',
-            '.question-index',
-            '.q-num',
-            '.q-index',
-            '.number',
-            '.index',
-            '[class*="question-number"]',
-            '[class*="qno"]',
-            '.no'
-        ],
-
-        questionPrefixRegexes: [
-            /^(?:Question|Câu|Q|Item)\s*#?\s*(\d+)[\s.:-]*\s*/i,
-            /^(\d+)[\s.:-]+\s*/i
-        ],
-
-        debounceTimeMs: 600
-    };
-
-    /* ==========================================================================
-       2. CORE SCANNER
-       ========================================================================== */
-    class AutoScanner {
-        static cleanText(str) {
+    class UniversalHTMLParser {
+        static clean(str) {
             if (!str) return '';
-            return str
-                .replace(/\r\n/g, '\n')
-                .replace(/\r/g, '\n')
-                .replace(/[ \t]+/g, ' ')
-                .replace(/\n\s*\n+/g, '\n')
-                .trim();
+            return str.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
         }
 
-        static parseNum(val) {
-            if (!val) return null;
-            const n = Number(val);
-            return !isNaN(n) ? n : val.trim();
-        }
+        static parseAnyHTML(rootElement = document.body) {
+            const extracted = [];
 
-        static findContainers() {
-            let containers = [];
-            for (const selector of CONFIG.questionSelectors) {
-                try {
-                    const elements = Array.from(document.querySelectorAll(selector)).filter(el => {
-                        if (el.closest('#auto-extractor-notification-host')) return false;
-                        return el.textContent && el.textContent.trim().length > 0;
-                    });
-                    if (elements.length > 0) {
-                        containers = elements;
-                        break;
+            // =====================================================================
+            // TẦNG 1: QUÉT NHÓM RADIO / CHECKBOX (Dạng form trắc nghiệm chuẩn)
+            // =====================================================================
+            const inputGroups = new Map();
+            const inputs = Array.from(rootElement.querySelectorAll('input[type="radio"], input[type="checkbox"]'));
+            
+            inputs.forEach(inp => {
+                const groupName = inp.name || inp.getAttribute('data-name') || 'default_group';
+                if (!inputGroups.has(groupName)) inputGroups.set(groupName, []);
+                inputGroups.get(groupName).push(inp);
+            });
+
+            inputGroups.forEach((groupInputs, name) => {
+                if (groupInputs.length >= 2) {
+                    let commonParent = groupInputs[0].parentElement;
+                    while (commonParent && commonParent !== rootElement) {
+                        const allInside = groupInputs.every(inp => commonParent.contains(inp));
+                        if (allInside && commonParent.textContent.trim().length > 15) break;
+                        commonParent = commonParent.parentElement;
                     }
-                } catch (e) {}
-            }
 
-            // Fallback nếu không có class quen thuộc
-            if (containers.length === 0) {
-                const pattern = /^(?:Question|Câu|Q)\s*\d+/i;
-                const candidates = [];
-                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-                    acceptNode(node) {
-                        if (node.parentElement && node.parentElement.closest('#auto-extractor-notification-host')) return NodeFilter.FILTER_REJECT;
-                        return pattern.test(node.nodeValue.trim()) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+                    if (commonParent && commonParent !== rootElement) {
+                        const qData = this.extractFromContainer(commonParent, groupInputs);
+                        if (qData) extracted.push(qData);
+                    }
+                }
+            });
+
+            // =====================================================================
+            // TẦNG 2: QUÉT CÁC KHỐI VĂN BẢN (A., B., C., D. hoặc Câu 1, Câu 2)
+            // =====================================================================
+            if (extracted.length === 0) {
+                const allBlocks = Array.from(rootElement.querySelectorAll('div, section, article, li, fieldset, tr, p, .card, .box'));
+                
+                allBlocks.forEach(block => {
+                    if (block.closest('#universal-extractor-hud')) return;
+                    const text = block.innerText || block.textContent || '';
+                    if (text.length < 15 || text.length > 5000) return;
+
+                    const optMatches = text.match(/(?:^|\n)\s*([A-Da-d0-9][\.\)])\s+([^\n]+)/g);
+                    const isQuestionHeader = /^(?:Question|Câu|Q|Bài|Item)\s*#?\s*\d+/i.test(text.trim());
+
+                    if ((optMatches && optMatches.length >= 2) || isQuestionHeader) {
+                        const hasChildCandidate = Array.from(block.children).some(child => {
+                            const childTxt = child.innerText || child.textContent || '';
+                            return /(?:^|\n)\s*([A-Da-d0-9][\.\)])\s+/g.test(childTxt);
+                        });
+
+                        if (!hasChildCandidate || optMatches) {
+                            const qData = this.extractFromText(text, block);
+                            if (qData) extracted.push(qData);
+                        }
                     }
                 });
-                let node;
-                while ((node = walker.nextNode())) {
-                    let p = node.parentElement;
-                    while (p && p !== document.body) {
-                        if (['div', 'section', 'article', 'li', 'fieldset'].includes(p.tagName.toLowerCase()) && p.textContent.trim().length > 20) break;
-                        p = p.parentElement;
-                    }
-                    if (p && p !== document.body && !candidates.includes(p)) candidates.push(p);
-                }
-                containers = candidates;
             }
 
-            return containers.filter((el, i, arr) => !arr.some((other, j) => i !== j && other !== el && other.contains(el)));
-        }
-
-        static extractIndex(container, domOrder) {
-            if (container.getAttribute('data-index')) return { index: this.parseNum(container.getAttribute('data-index')), source: 'data-index' };
-            if (container.getAttribute('data-question-index')) return { index: this.parseNum(container.getAttribute('data-question-index')), source: 'data-question-index' };
-            if (container.getAttribute('data-question-id')) return { index: this.parseNum(container.getAttribute('data-question-id')), source: 'data-question-id' };
-            if (container.getAttribute('data-id')) return { index: this.parseNum(container.getAttribute('data-id')), source: 'data-id' };
-            if (container.id) {
-                const match = container.id.match(/\d+/);
-                if (match) return { index: Number(match[0]), source: 'id' };
-            }
-            for (const sel of CONFIG.indexElementSelectors) {
-                const el = container.querySelector(sel);
-                if (el && el.textContent.trim()) {
-                    const match = el.textContent.trim().match(/\d+/);
-                    if (match) return { index: Number(match[0]), source: `element:${sel}` };
-                }
-            }
-            const text = container.textContent.trim();
-            for (const regex of CONFIG.questionPrefixRegexes) {
-                const match = text.match(regex);
-                if (match && match[1]) return { index: Number(match[1]), source: 'text' };
-            }
-            return { index: domOrder + 1, source: 'generated' };
-        }
-
-        static extractOptions(container) {
-            let optElements = [];
-            for (const sel of CONFIG.optionSelectors) {
-                const found = Array.from(container.querySelectorAll(sel));
-                if (found.length > 0) {
-                    optElements = found;
-                    break;
-                }
-            }
-            if (optElements.length === 0) return { options: [], optElements: [] };
-
-            const options = optElements.map(el => {
-                const clone = el.cloneNode(true);
-                CONFIG.noiseSelectors.forEach(n => clone.querySelectorAll(n).forEach(x => x.remove()));
-                return this.cleanText(clone.textContent);
-            }).filter(t => t.length > 0);
-
-            return { options, optElements };
-        }
-
-        static extractQuestionText(container, optElements) {
-            const clone = container.cloneNode(true);
-            CONFIG.optionSelectors.forEach(s => clone.querySelectorAll(s).forEach(x => x.remove()));
-            CONFIG.noiseSelectors.forEach(s => clone.querySelectorAll(s).forEach(x => x.remove()));
-            CONFIG.indexElementSelectors.forEach(s => clone.querySelectorAll(s).forEach(x => x.remove()));
-
-            let text = this.cleanText(clone.textContent);
-            for (const regex of CONFIG.questionPrefixRegexes) {
-                if (regex.test(text)) text = text.replace(regex, '').trim();
-            }
-            return text;
-        }
-
-        static scan() {
-            const containers = this.findContainers();
-            const raw = [];
-
-            containers.forEach((container, idx) => {
-                const { index, source } = this.extractIndex(container, idx);
-                const qId = container.getAttribute('data-question-id') || container.getAttribute('data-id') || container.id || String(index);
-                const { options, optElements } = this.extractOptions(container);
-                const questionText = this.extractQuestionText(container, optElements);
-
-                if (questionText && questionText.length > 0) {
-                    const item = { index, questionId: qId, question: questionText, indexSource: source };
-                    if (options && options.length > 0) item.options = options;
-                    raw.push(item);
-                }
-            });
-
-            // Khử trùng lặp
+            // =====================================================================
+            // TẦNG 3: KHỬ TRÙNG LẶP & SẮP XẾP INDEX 1, 2, 3...
+            // =====================================================================
             const uniqueMap = new Map();
-            raw.forEach(item => {
-                const key = item.question.trim().toLowerCase();
-                if (!uniqueMap.has(key)) uniqueMap.set(key, item);
+            extracted.forEach((q, idx) => {
+                const key = q.question.toLowerCase().trim();
+                if (!uniqueMap.has(key)) {
+                    if (!q.index) q.index = idx + 1;
+                    uniqueMap.set(key, q);
+                }
             });
-            const results = Array.from(uniqueMap.values());
 
-            // Sắp xếp tăng dần theo index
-            results.sort((a, b) => {
-                const numA = Number(a.index);
-                const numB = Number(b.index);
-                if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-                return String(a.index).localeCompare(String(b.index), undefined, { numeric: true });
-            });
+            const results = Array.from(uniqueMap.values());
+            results.sort((a, b) => (Number(a.index) || 0) - (Number(b.index) || 0));
 
             return results;
         }
 
-        static async sendToServer(questions) {
-            if (!questions || questions.length === 0) return null;
+        static extractFromContainer(container, inputElements = []) {
+            const fullText = this.clean(container.innerText || container.textContent);
+            
+            let index = null;
+            let indexSource = 'generated';
+            const indexAttr = container.getAttribute('data-index') || container.getAttribute('data-id') || container.id;
+            if (indexAttr && indexAttr.match(/\d+/)) {
+                index = Number(indexAttr.match(/\d+/)[0]);
+                indexSource = 'attribute';
+            }
 
+            const prefixMatch = fullText.match(/^(?:Question|Câu|Q|Bài|Item)\s*#?\s*(\d+)[\s.:-]*/i);
+            if (prefixMatch) {
+                index = Number(prefixMatch[1]);
+                indexSource = 'text-prefix';
+            }
+
+            let options = [];
+            if (inputElements.length > 0) {
+                options = inputElements.map(inp => {
+                    let labelText = '';
+                    if (inp.id) {
+                        const lbl = container.querySelector(`label[for="${inp.id}"]`);
+                        if (lbl) labelText = lbl.textContent;
+                    }
+                    if (!labelText && inp.parentElement) {
+                        labelText = inp.parentElement.textContent;
+                    }
+                    return this.clean(labelText);
+                }).filter(t => t.length > 0);
+            }
+
+            let questionText = fullText;
+            options.forEach(opt => {
+                if (opt) questionText = questionText.replace(opt, '');
+            });
+            questionText = questionText.replace(/^(?:Question|Câu|Q|Bài|Item)\s*#?\s*\d+[\s.:-]*/i, '').trim();
+
+            if (!questionText || questionText.length < 3) return null;
+
+            return {
+                index: index || 1,
+                questionId: (container.getAttribute('data-question-id') || container.getAttribute('data-id') || container.id || String(index || 1)),
+                question: this.clean(questionText),
+                options: options.length > 0 ? options : undefined,
+                indexSource: indexSource
+            };
+        }
+
+        static extractFromText(rawText, element) {
+            const clean = this.clean(rawText);
+            const lines = clean.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            if (lines.length === 0) return null;
+
+            let index = 1;
+            const prefixMatch = lines[0].match(/^(?:Question|Câu|Q|Bài|Item)\s*#?\s*(\d+)[\s.:-]*/i);
+            if (prefixMatch) {
+                index = Number(prefixMatch[1]);
+            }
+
+            const questionLines = [];
+            const options = [];
+
+            lines.forEach(line => {
+                const isOption = /^([A-Da-d0-9][\.\)]|\([A-Da-d0-9]\))\s+(.+)/i.test(line);
+                if (isOption) {
+                    options.push(line);
+                } else if (options.length === 0) {
+                    questionLines.push(line);
+                }
+            });
+
+            let qText = questionLines.join(' ').replace(/^(?:Question|Câu|Q|Bài|Item)\s*#?\s*\d+[\s.:-]*/i, '').trim();
+            if (!qText) qText = lines[0];
+
+            return {
+                index: index,
+                questionId: String(index),
+                question: qText,
+                options: options.length > 0 ? options : undefined,
+                indexSource: prefixMatch ? 'text-prefix' : 'generated'
+            };
+        }
+
+        static async transmit(questions) {
+            if (!questions || questions.length === 0) return;
             const payload = {
                 metadata: {
                     sourceUrl: window.location.href,
@@ -267,114 +199,120 @@
                 questions: questions
             };
 
-            const response = await fetch(CONFIG.SERVER_URL, {
-                method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+            try {
+                await fetch(SAVE_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                console.log(`%c[UNIVERSAL EXTRACTOR] ✅ Đã bóc & gửi thành công ${questions.length} câu hỏi!`, 'color:#10b981;font-weight:bold;');
+            } catch (e) {
+                console.warn('[UNIVERSAL EXTRACTOR] Không thể gửi dữ liệu về Dashboard:', e.message);
+            }
+        }
+    }
+
+    /* =========================================================================
+       GIAO DIỆN NỔI (HUD PANEL)
+       ========================================================================= */
+    class FloatingHUD {
+        constructor() {
+            this.hostId = 'universal-extractor-hud';
+            this.results = [];
+        }
+
+        init() {
+            const old = document.getElementById(this.hostId);
+            if (old) old.remove();
+
+            const host = document.createElement('div');
+            host.id = this.hostId;
+            host.style.position = 'fixed';
+            host.style.bottom = '16px';
+            host.style.right = '16px';
+            host.style.zIndex = '2147483647';
+            host.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+            const shadow = host.attachShadow({ mode: 'open' });
+            shadow.innerHTML = `
+                <style>
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    .hud {
+                        background: #0f172a; color: #f8fafc; border: 1px solid #334155;
+                        border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+                        padding: 12px 14px; font-size: 12px; width: 230px;
+                    }
+                    .hud.min .body { display: none; }
+                    .hud.min { width: 130px; padding: 6px 10px; }
+                    .hdr { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: #38bdf8; }
+                    .btn-min { background: none; border: none; color: #94a3b8; cursor: pointer; font-weight: bold; }
+                    .body { margin-top: 8px; }
+                    .stat { background: #1e293b; padding: 6px 8px; border-radius: 6px; display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11.5px; }
+                    .btn-row { display: flex; gap: 6px; }
+                    button.act { flex: 1; padding: 5px; border-radius: 4px; border: none; background: #0284c7; color: white; font-weight: 600; font-size: 11px; cursor: pointer; }
+                    button.act:hover { background: #0369a1; }
+                    button.sec { background: #334155; }
+                    button.sec:hover { background: #475569; }
+                </style>
+                <div class="hud" id="hud-box">
+                    <div class="hdr">
+                        <span>⚡ AUTO SCAN</span>
+                        <button class="btn-min" id="btn-min">_</button>
+                    </div>
+                    <div class="body">
+                        <div class="stat">
+                            <span style="color:#94a3b8;">Đã bóc được:</span>
+                            <strong id="hud-count" style="color:#4ade80;">0 câu</strong>
+                        </div>
+                        <div class="btn-row">
+                            <button class="act" id="btn-rescan">🔍 Quét lại</button>
+                            <button class="act sec" id="btn-copy">📋 Copy</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(host);
+
+            shadow.getElementById('btn-min').addEventListener('click', () => {
+                shadow.getElementById('hud-box').classList.toggle('min');
+            });
+            shadow.getElementById('btn-rescan').addEventListener('click', () => this.runScan());
+            shadow.getElementById('btn-copy').addEventListener('click', () => {
+                navigator.clipboard.writeText(JSON.stringify(this.results, null, 2));
+                alert(`Đã copy ${this.results.length} câu hỏi vào clipboard!`);
             });
 
-            return await response.json();
+            this.shadow = shadow;
+            this.runScan();
+            this.setupObserver();
         }
-    }
 
-    /* ==========================================================================
-       3. NOTIFICATION TOAST (HIỂN THỊ THÔNG BÁO GÓC MÀN HÌNH)
-       ========================================================================== */
-    class AutoNotification {
-        static show(msg, isSuccess = true) {
-            let host = document.getElementById('auto-extractor-notification-host');
-            if (!host) {
-                host = document.createElement('div');
-                host.id = 'auto-extractor-notification-host';
-                host.style.position = 'fixed';
-                host.style.bottom = '20px';
-                host.style.right = '20px';
-                host.style.zIndex = '2147483647';
-                document.body.appendChild(host);
+        setupObserver() {
+            let timer = null;
+            const obs = new MutationObserver(() => {
+                clearTimeout(timer);
+                timer = setTimeout(() => this.runScan(), 600);
+            });
+            obs.observe(document.body, { childList: true, subtree: true });
+        }
+
+        async runScan() {
+            this.results = UniversalHTMLParser.parseAnyHTML(document.body);
+            const countEl = this.shadow.getElementById('hud-count');
+            if (countEl) countEl.textContent = `${this.results.length} câu`;
+            if (this.results.length > 0) {
+                console.table(this.results);
+                await UniversalHTMLParser.transmit(this.results);
             }
-
-            const toast = document.createElement('div');
-            toast.style.background = isSuccess ? '#065f46' : '#991b1b';
-            toast.style.color = '#ffffff';
-            toast.style.border = isSuccess ? '1px solid #10b981' : '1px solid #ef4444';
-            toast.style.borderRadius = '8px';
-            toast.style.padding = '12px 18px';
-            toast.style.fontSize = '13px';
-            toast.style.fontWeight = '600';
-            toast.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            toast.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
-            toast.style.marginBottom = '8px';
-            toast.style.display = 'flex';
-            toast.style.alignItems = 'center';
-            toast.style.gap = '8px';
-            toast.innerHTML = `<span>${isSuccess ? '⚡' : '⚠️'}</span> <span>${msg}</span>`;
-
-            host.appendChild(toast);
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                toast.style.transition = 'opacity 0.5s ease';
-                setTimeout(() => toast.remove(), 500);
-            }, 4000);
         }
     }
 
-    /* ==========================================================================
-       4. AUTO RUNNER (TỰ ĐỘNG CHẠY NGAY LẬP TỨC)
-       ========================================================================== */
-    let lastQuestionCount = 0;
-    let observer = null;
-    let debounceTimer = null;
+    // Tự động chạy ngay lập tức khi trang render
+    setTimeout(() => {
+        const hud = new FloatingHUD();
+        hud.init();
+    }, 300);
 
-    async function executeAutoScanAndSend() {
-        console.log('%c[AUTO EXTRACTOR] Đang tự động quét câu hỏi...', 'background:#2563eb;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold;');
-        const results = AutoScanner.scan();
-
-        if (results.length > 0) {
-            console.log(`%c[AUTO EXTRACTOR] Tìm thấy ${results.length} câu hỏi. Đang tự động gửi về Server...`, 'background:#10b981;color:#fff;padding:2px 6px;border-radius:3px;font-weight:bold;');
-            console.table(results);
-
-            try {
-                await AutoScanner.sendToServer(results);
-                AutoNotification.show(`Đã tự động bóc và gửi ${results.length} câu hỏi về Dashboard!`, true);
-                lastQuestionCount = results.length;
-            } catch (err) {
-                console.error('[AUTO EXTRACTOR] Không thể gửi về server:', err);
-                AutoNotification.show(`Đã bóc ${results.length} câu (Chưa bật server localhost:3000)`, false);
-            }
-        } else {
-            console.warn('[AUTO EXTRACTOR] Chưa tìm thấy câu hỏi trên trang.');
-        }
-        return results;
-    }
-
-    // Tự động quét lần 1 ngay lập tức
-    setTimeout(executeAutoScanAndSend, 300);
-    // Tự động quét lần 2 sau 1.5s (dành cho trang load dữ liệu AJAX)
-    setTimeout(executeAutoScanAndSend, 1500);
-
-    // 5. Tự động theo dõi DOM nếu trang web thêm câu hỏi mới
-    if (CONFIG.AUTO_WATCH_DOM_CHANGES) {
-        observer = new MutationObserver((mutations) => {
-            const isSelf = mutations.every(m => m.target && (m.target.id === 'auto-extractor-notification-host' || (m.target.closest && m.target.closest('#auto-extractor-notification-host'))));
-            if (isSelf) return;
-
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(async () => {
-                const results = AutoScanner.scan();
-                if (results.length !== lastQuestionCount && results.length > 0) {
-                    console.log(`[AUTO EXTRACTOR] Phát hiện DOM thay đổi (Tổng: ${results.length} câu). Đang tự động cập nhật...`);
-                    await executeAutoScanAndSend();
-                }
-            }, CONFIG.debounceTimeMs);
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    window.IndexExtractor = {
-        scanAndSend: executeAutoScanAndSend,
-        scan: () => AutoScanner.scan(),
-        getResults: () => AutoScanner.scan()
-    };
+    window.scanQuestions = () => UniversalHTMLParser.parseAnyHTML(document.body);
 })();
