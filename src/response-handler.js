@@ -18,7 +18,7 @@ class ResponseHandler {
         const { hostname, statusCode, contentTypeInfo, bodyBuffer } = context;
 
         // 1. Kiểm tra whitelist host
-        const isAllowedHost = CONFIG.ALLOWED_HOSTS.some(h => {
+        const isAllowedHost = CONFIG.ALLOWED_HOSTS.includes('*') || CONFIG.ALLOWED_HOSTS.some(h => {
             return hostname === h || hostname.startsWith(h + ':') || hostname === 'localhost' || hostname === '127.0.0.1';
         });
 

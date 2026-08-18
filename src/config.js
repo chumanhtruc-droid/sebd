@@ -11,7 +11,8 @@ const CONFIG = {
     proxy: {
         host: '127.0.0.1',
         port: 8080,
-        enabled: true
+        enabled: true,
+        injectAll: true // Tự động quét và tiêm trên MỌI trang web
     },
 
     // Cấu hình Dashboard Web UI
@@ -20,14 +21,8 @@ const CONFIG = {
         enabled: true
     },
 
-    // Whitelist: Chỉ cho phép can thiệp / inject vào các domain kiểm thử được phép
-    ALLOWED_HOSTS: [
-        'localhost',
-        '127.0.0.1',
-        '0.0.0.0',
-        'test.example.local',
-        'test.local'
-    ],
+    // Whitelist hoặc cho phép toàn bộ
+    ALLOWED_HOSTS: ['*'],
 
     // Cấu hình các selector nhận diện câu hỏi
     selectors: {
